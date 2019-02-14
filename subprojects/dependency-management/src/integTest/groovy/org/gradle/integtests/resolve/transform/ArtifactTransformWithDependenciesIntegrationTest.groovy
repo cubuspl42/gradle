@@ -156,7 +156,7 @@ abstract class TestTransformAction implements TransformAction {
     @InputArtifact
     abstract File getInput()
 
-    void transform(ArtifactTransformOutputs outputs) {
+    void transform(TransformOutputs outputs) {
         println "\${parameters.transformName} received dependencies files \${inputArtifactDependencies*.name} for processing \${input.name}"
         assert inputArtifactDependencies.every { it.exists() }
 
@@ -173,7 +173,7 @@ abstract class SimpleTransform implements TransformAction {
     @InputArtifact
     abstract File getInput()
 
-    void transform(ArtifactTransformOutputs outputs) {
+    void transform(TransformOutputs outputs) {
         def output = outputs.file(input.name + ".txt")
         def workspace = output.parentFile
         assert workspace.directory && workspace.list().length == 0

@@ -35,7 +35,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     println "processing \${input.name}"
                     def output = outputs.file(input.name + ".green")
                     output.text = input.text + ".green"
@@ -143,7 +143,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     if (input.exists()) {
                         println "processing \${input.name}"
                     } else {
@@ -264,7 +264,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     if (input.exists()) {
                         println "processing \${input.name}"
                     } else {
@@ -327,7 +327,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     println "processing \${input.name}"
                     def output = outputs.file(input.text + ".green")
                     output.text = input.text + ".green"
@@ -406,7 +406,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     println "processing \${input.name}"
                     def output = outputs.file(input.name + ".green")
                     output.text = input.text + ".green"
@@ -502,7 +502,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     println "processing \${input.name}"
                     def output = outputs.file(input.text + ".green")
                     output.text = input.text + ".green"
@@ -589,7 +589,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 @InputArtifact
                 abstract File getInput()
                 
-                void transform(ArtifactTransformOutputs outputs) {
+                void transform(TransformOutputs outputs) {
                     println "processing \${input.name}"
                     def output = outputs.file(input.name + ".green")
                     output.text = input.text + ".green"
