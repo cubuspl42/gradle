@@ -31,7 +31,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 }
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @InputArtifact
                 abstract File getInput()
                 
@@ -139,7 +139,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 }
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @InputArtifact
                 abstract File getInput()
                 
@@ -260,7 +260,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 }
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @InputArtifact
                 abstract File getInput()
                 
@@ -322,7 +322,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 }
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @PathSensitive(PathSensitivity.NONE)
                 @InputArtifact
                 abstract File getInput()
@@ -401,7 +401,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 }
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @PathSensitive(PathSensitivity.NAME_ONLY)
                 @InputArtifact
                 abstract File getInput()
@@ -497,7 +497,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 implementation 'group2:lib2:1.0'
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @PathSensitive(PathSensitivity.NONE)
                 @InputArtifact
                 abstract File getInput()
@@ -584,7 +584,7 @@ class ArtifactTransformArtifactInputIntegrationTest extends AbstractDependencyRe
                 implementation 'group2:lib2:1.0'
             }
             
-            abstract class MakeGreen implements ArtifactTransformAction {
+            abstract class MakeGreen implements TransformAction {
                 @PathSensitive(PathSensitivity.NAME_ONLY)
                 @InputArtifact
                 abstract File getInput()

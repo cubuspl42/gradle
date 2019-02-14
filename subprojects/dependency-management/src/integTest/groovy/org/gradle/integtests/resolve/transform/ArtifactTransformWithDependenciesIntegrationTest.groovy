@@ -145,7 +145,7 @@ class Producer extends DefaultTask {
     }
 }
 
-abstract class TestTransformAction implements ArtifactTransformAction {
+abstract class TestTransformAction implements TransformAction {
 
     @TransformParameters
     abstract TestTransform getParameters()
@@ -168,7 +168,7 @@ abstract class TestTransformAction implements ArtifactTransformAction {
     }
 }
 
-abstract class SimpleTransform implements ArtifactTransformAction {
+abstract class SimpleTransform implements TransformAction {
 
     @InputArtifact
     abstract File getInput()
