@@ -47,7 +47,7 @@ class ArtifactTransformWithDependenciesIntegrationTest extends AbstractHttpDepen
         buildFile << """
 def artifactType = Attribute.of('artifactType', String)
                    
-@TransformAction(TestTransformAction)
+@AssociatedTransformAction(TestTransformAction)
 interface TestTransform {
     @Input
     String getTransformName()
