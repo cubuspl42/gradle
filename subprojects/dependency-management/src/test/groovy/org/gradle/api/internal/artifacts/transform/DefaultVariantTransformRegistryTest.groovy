@@ -26,6 +26,7 @@ import org.gradle.api.internal.DynamicObjectAware
 import org.gradle.api.internal.tasks.properties.InspectionScheme
 import org.gradle.api.internal.tasks.properties.PropertyWalker
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.execution.ProjectExecutionServiceRegistry
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher
 import org.gradle.internal.hash.HashCode
 import org.gradle.internal.isolation.TestIsolatableFactory
@@ -57,7 +58,8 @@ class DefaultVariantTransformRegistryTest extends Specification {
     def classLoaderHierarchyHasher = Mock(ClassLoaderHierarchyHasher)
     def attributesFactory = AttributeTestUtil.attributesFactory()
     def domainObjectContextProjectStateHandler = Mock(DomainObjectProjectStateHandler)
-    def registryFactory = new DefaultTransformationRegistrationFactory(isolatableFactory, classLoaderHierarchyHasher, transformerInvoker, valueSnapshotter, domainObjectContextProjectStateHandler, new ArtifactTransformParameterScheme(instantiatorFactory.injectScheme(), inspectionScheme), new ArtifactTransformActionScheme(instantiatorFactory.injectScheme(), inspectionScheme, instantiatorFactory.injectScheme()))
+    def projectExecutionServiceRegistry = Mock(ProjectExecutionServiceRegistry)
+    def registryFactory = new DefaultTransformationRegistrationFactory(isolatableFactory, classLoaderHierarchyHasher, transformerInvoker, valueSnapshotter, domainObjectContextProjectStateHandler, new ArtifactTransformParameterScheme(instantiatorFactory.injectScheme(), inspectionScheme), new ArtifactTransformActionScheme(instantiatorFactory.injectScheme(), inspectionScheme, instantiatorFactory.injectScheme()), projectExecutionServiceRegistry)
     def registry = new DefaultVariantTransformRegistry(instantiatorFactory, attributesFactory, Stub(ServiceRegistry), registryFactory, instantiatorFactory.injectScheme())
 
     def "setup"() {

@@ -95,8 +95,11 @@ import org.gradle.api.internal.model.NamedObjectInstantiator;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.project.ProjectStateRegistry;
 import org.gradle.api.internal.tasks.TaskResolver;
+import org.gradle.api.internal.tasks.properties.annotations.FileFingerprintingPropertyAnnotationHandler;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.configuration.internal.UserCodeApplicationContext;
+import org.gradle.execution.ProjectExecutionServiceRegistry;
+import org.gradle.execution.ProjectExecutionServices;
 import org.gradle.initialization.ProjectAccessListener;
 import org.gradle.internal.authentication.AuthenticationSchemeRegistry;
 import org.gradle.internal.build.BuildState;
@@ -125,8 +128,12 @@ import org.gradle.internal.execution.impl.steps.StoreSnapshotsStep;
 import org.gradle.internal.execution.impl.steps.TimeoutStep;
 import org.gradle.internal.execution.impl.steps.UpToDateResult;
 import org.gradle.internal.execution.timeout.TimeoutHandler;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.fingerprint.impl.AbsolutePathFileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.impl.IgnoredPathFileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.impl.NameOnlyFileCollectionFingerprinter;
 import org.gradle.internal.fingerprint.impl.OutputFileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.impl.RelativePathFileCollectionFingerprinter;
 import org.gradle.internal.id.UniqueId;
 import org.gradle.internal.instantiation.InstantiatorFactory;
 import org.gradle.internal.isolation.IsolatableFactory;
@@ -190,8 +197,37 @@ public class DefaultDependencyManagementServices implements DependencyManagement
             };
         }
 
+        AbsolutePathFileCollectionFingerprinter createAbsolutePathFileCollectionFingerprinter(StringInterner stringInterner, FileSystemSnapshotter fileSystemSnapshotter) {
+            return new AbsolutePathFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter);
+        }
+
+        RelativePathFileCollectionFingerprinter createRelativePathFileCollectionFingerprinter(StringInterner stringInterner, FileSystemSnapshotter fileSystemSnapshotter) {
+            return new RelativePathFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter);
+        }
+
+        NameOnlyFileCollectionFingerprinter createNameOnlyFileCollectionFingerprinter(StringInterner stringInterner, FileSystemSnapshotter fileSystemSnapshotter) {
+            return new NameOnlyFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter);
+        }
+
+        IgnoredPathFileCollectionFingerprinter createIgnoredPathFileCollectionFingerprinter(StringInterner stringInterner, FileSystemSnapshotter fileSystemSnapshotter) {
+            return new IgnoredPathFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter);
+        }
+
         OutputFileCollectionFingerprinter createOutputFingerprinter(FileSystemSnapshotter fileSystemSnapshotter, StringInterner stringInterner) {
             return new OutputFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter);
+        }
+
+        FileCollectionFingerprinterRegistry createFileCollectionFingerprinterRegistry(ServiceRegistry serviceRegistry, List<FileFingerprintingPropertyAnnotationHandler> handlers) {
+            return ProjectExecutionServices.doCreateFileCollectionFingerprinterRegistry(serviceRegistry, handlers);
+        }
+
+        ProjectExecutionServiceRegistry createProjectExecutionServiceRegistry(ServiceRegistry serviceRegistry) {
+            return new ProjectExecutionServiceRegistry() {
+                @Override
+                public <T> T getProjectService(ProjectInternal project, Class<T> serviceType) {
+                    return serviceRegistry.get(serviceType);
+                }
+            };
         }
 
         /**
@@ -280,8 +316,8 @@ public class DefaultDependencyManagementServices implements DependencyManagement
             );
         }
 
-        TransformationRegistrationFactory createTransformationRegistrationFactory(IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, InstantiatorFactory instantiatorFactory, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, ProjectStateRegistry projectStateRegistry, DomainObjectContext domainObjectContext, ProjectFinder projectFinder, ArtifactTransformParameterScheme parameterScheme, ArtifactTransformActionScheme actionScheme) {
-            return new DefaultTransformationRegistrationFactory(isolatableFactory, classLoaderHierarchyHasher, transformerInvoker, valueSnapshotter, new DomainObjectProjectStateHandler(projectStateRegistry, domainObjectContext, projectFinder), parameterScheme, actionScheme);
+        TransformationRegistrationFactory createTransformationRegistrationFactory(IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, ProjectStateRegistry projectStateRegistry, DomainObjectContext domainObjectContext, ProjectFinder projectFinder, ArtifactTransformParameterScheme parameterScheme, ArtifactTransformActionScheme actionScheme, ProjectExecutionServiceRegistry projectExecutionServiceRegistry) {
+            return new DefaultTransformationRegistrationFactory(isolatableFactory, classLoaderHierarchyHasher, transformerInvoker, valueSnapshotter, new DomainObjectProjectStateHandler(projectStateRegistry, domainObjectContext, projectFinder), parameterScheme, actionScheme, projectExecutionServiceRegistry);
         }
 
         VariantTransformRegistry createArtifactTransformRegistry(InstantiatorFactory instantiatorFactory, ImmutableAttributesFactory attributesFactory, ServiceRegistry services, TransformationRegistrationFactory transformationRegistrationFactory, ArtifactTransformParameterScheme parameterScheme) {

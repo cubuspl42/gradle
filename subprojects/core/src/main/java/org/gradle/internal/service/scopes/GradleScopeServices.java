@@ -45,10 +45,12 @@ import org.gradle.execution.BuildConfigurationActionExecuter;
 import org.gradle.execution.BuildExecuter;
 import org.gradle.execution.DefaultBuildConfigurationActionExecuter;
 import org.gradle.execution.DefaultBuildExecuter;
+import org.gradle.execution.DefaultProjectExecutionServiceRegistry;
 import org.gradle.execution.DefaultTasksBuildExecutionAction;
 import org.gradle.execution.DryRunBuildExecutionAction;
 import org.gradle.execution.ExcludedTaskFilteringBuildConfigurationAction;
 import org.gradle.execution.ProjectConfigurer;
+import org.gradle.execution.ProjectExecutionServiceRegistry;
 import org.gradle.execution.SelectedTaskExecutionAction;
 import org.gradle.execution.TaskNameResolvingBuildConfigurationAction;
 import org.gradle.execution.TaskSelector;
@@ -200,6 +202,10 @@ public class GradleScopeServices extends DefaultServiceRegistry {
         return listenerManager.createAnonymousBroadcaster(TaskExecutionGraphListener.class);
     }
 
+    ProjectExecutionServiceRegistry createProjectExecutionServiceRegistry() {
+        return new DefaultProjectExecutionServiceRegistry();
+    }
+
     TaskExecutionGraphInternal createTaskExecutionGraph(
         PlanExecutor planExecutor,
         List<NodeExecutor> nodeExecutors,
@@ -211,9 +217,21 @@ public class GradleScopeServices extends DefaultServiceRegistry {
         TaskNodeFactory taskNodeFactory,
         TaskDependencyResolver dependencyResolver,
         ListenerBroadcast<TaskExecutionListener> taskListeners,
-        ListenerBroadcast<TaskExecutionGraphListener> graphListeners
-    ) {
-        return new DefaultTaskExecutionGraph(planExecutor, nodeExecutors, buildOperationExecutor, listenerBuildOperationDecorator, workerLeaseService, coordinationService, gradleInternal, taskNodeFactory, dependencyResolver, graphListeners, taskListeners);
+        ListenerBroadcast<TaskExecutionGraphListener> graphListeners,
+        ProjectExecutionServiceRegistry projectExecutionServiceRegistry) {
+        return new DefaultTaskExecutionGraph(
+            planExecutor,
+            nodeExecutors,
+            buildOperationExecutor,
+            listenerBuildOperationDecorator,
+            workerLeaseService,
+            coordinationService,
+            gradleInternal,
+            taskNodeFactory,
+            dependencyResolver,
+            graphListeners,
+            taskListeners,
+            projectExecutionServiceRegistry);
     }
 
     ServiceRegistryFactory createServiceRegistryFactory(final ServiceRegistry services) {

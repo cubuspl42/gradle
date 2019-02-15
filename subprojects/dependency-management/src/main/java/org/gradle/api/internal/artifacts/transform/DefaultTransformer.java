@@ -26,11 +26,15 @@ import org.gradle.api.artifacts.transform.InputArtifact;
 import org.gradle.api.artifacts.transform.InputArtifactDependencies;
 import org.gradle.api.artifacts.transform.TransformParameters;
 import org.gradle.api.artifacts.transform.VariantTransformConfigurationException;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
+import org.gradle.api.internal.file.FileCollectionFactory;
+import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.project.ProjectStateRegistry;
 import org.gradle.api.internal.tasks.TaskDependencyResolveContext;
 import org.gradle.api.internal.tasks.WorkNodeAction;
 import org.gradle.api.internal.tasks.properties.DefaultParameterValidationContext;
+import org.gradle.api.internal.tasks.properties.FileParameterUtils;
 import org.gradle.api.internal.tasks.properties.InputFilePropertyType;
 import org.gradle.api.internal.tasks.properties.InputParameterUtils;
 import org.gradle.api.internal.tasks.properties.OutputFilePropertyType;
@@ -39,8 +43,12 @@ import org.gradle.api.internal.tasks.properties.PropertyVisitor;
 import org.gradle.api.internal.tasks.properties.PropertyWalker;
 import org.gradle.api.reflect.InjectionPointQualifier;
 import org.gradle.api.tasks.FileNormalizer;
+import org.gradle.execution.ProjectExecutionServiceRegistry;
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher;
 import org.gradle.internal.exceptions.DefaultMultiCauseException;
+import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.fingerprint.FingerprintingStrategy;
 import org.gradle.internal.hash.HashCode;
 import org.gradle.internal.hash.Hasher;
@@ -74,6 +82,7 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
     private final IsolatableFactory isolatableFactory;
     private final ValueSnapshotter valueSnapshotter;
     private final PropertyWalker parameterPropertyWalker;
+    private final ProjectExecutionServiceRegistry projectExecutionServiceRegistry;
     private final boolean requiresDependencies;
     private final InstanceFactory<? extends ArtifactTransformAction> instanceFactory;
     private final DomainObjectProjectStateHandler projectStateHandler;
@@ -82,7 +91,7 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
 
     private IsolatableParameters isolatable;
 
-    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, @Nullable Object parameterObject, ImmutableAttributes fromAttributes, FingerprintingStrategy fingerprintingStrategy, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, IsolatableFactory isolatableFactory, ValueSnapshotter valueSnapshotter, PropertyWalker parameterPropertyWalker, DomainObjectProjectStateHandler projectStateHandler, InstantiationScheme actionInstantiationScheme) {
+    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, @Nullable Object parameterObject, ImmutableAttributes fromAttributes, FingerprintingStrategy fingerprintingStrategy, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, IsolatableFactory isolatableFactory, ValueSnapshotter valueSnapshotter, PropertyWalker parameterPropertyWalker, DomainObjectProjectStateHandler projectStateHandler, InstantiationScheme actionInstantiationScheme, ProjectExecutionServiceRegistry projectExecutionServiceRegistry) {
         super(implementationClass, fromAttributes);
         this.parameterObject = parameterObject;
         this.fingerprintingStrategy = fingerprintingStrategy;
@@ -90,6 +99,7 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
         this.isolatableFactory = isolatableFactory;
         this.valueSnapshotter = valueSnapshotter;
         this.parameterPropertyWalker = parameterPropertyWalker;
+        this.projectExecutionServiceRegistry = projectExecutionServiceRegistry;
         this.instanceFactory = actionInstantiationScheme.forType(implementationClass);
         this.requiresDependencies = instanceFactory.serviceInjectionTriggeredByAnnotation(InputArtifactDependencies.class);
         this.projectStateHandler = projectStateHandler;
@@ -103,7 +113,7 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
 
             @Override
             public void run() {
-                isolateExclusively();
+                isolateExclusively(getProject());
             }
         };
     }
@@ -133,28 +143,32 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
     @Override
     public void isolateParameters() {
         if (isolatable == null) {
+            Project owningProject = projectStateHandler.maybeGetOwningProject();
             if (!projectStateHandler.hasMutableProjectState()) {
-                projectStateHandler.withLenientState(this::isolateExclusively);
+                projectStateHandler.withLenientState(() -> isolateExclusively(owningProject));
             } else {
-                isolateExclusively();
+                isolateExclusively(owningProject);
             }
         }
     }
 
-    private void isolateExclusively() {
+    private void isolateExclusively(@Nullable Project owningProject) {
         isolationLock.withLock(() -> {
             if (isolatable != null) {
                 return;
             }
             try {
-                isolatable = doIsolateParameters();
+                ProjectInternal project = (ProjectInternal) owningProject;
+                FileCollectionFingerprinterRegistry fingerprinterRegistry = projectExecutionServiceRegistry.getProjectService(project, FileCollectionFingerprinterRegistry.class);
+                FileCollectionFactory fileCollectionFactory = projectExecutionServiceRegistry.getProjectService(project, FileCollectionFactory.class);
+                isolatable = doIsolateParameters(fingerprinterRegistry, fileCollectionFactory);
             } catch (Exception e) {
                 throw new VariantTransformConfigurationException(String.format("Cannot isolate parameters %s of artifact transform %s", parameterObject,  ModelType.of(getImplementationClass()).getDisplayName()), e);
             }
         });
     }
 
-    protected IsolatableParameters doIsolateParameters() {
+    protected IsolatableParameters doIsolateParameters(FileCollectionFingerprinterRegistry fingerprinterRegistry, FileCollectionFactory fileCollectionFactory) {
         Isolatable<Object> isolatableParameterObject = isolatableFactory.isolate(parameterObject);
 
         Hasher hasher = Hashing.newHasher();
@@ -162,7 +176,7 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
 
         if (parameterObject != null) {
             // TODO wolfs - schedule fingerprinting separately, it can be done without having the project lock
-            fingerprintParameters(valueSnapshotter, parameterPropertyWalker, hasher, isolatableParameterObject.isolate());
+            fingerprintParameters(valueSnapshotter, fingerprinterRegistry, fileCollectionFactory, parameterPropertyWalker, hasher, isolatableParameterObject.isolate());
         }
         HashCode secondaryInputsHash = hasher.hash();
         return new IsolatableParameters(isolatableParameterObject, secondaryInputsHash);
@@ -170,11 +184,14 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
 
     private static void fingerprintParameters(
         ValueSnapshotter valueSnapshotter,
+        FileCollectionFingerprinterRegistry fingerprinterRegistry,
+        FileCollectionFactory fileCollectionFactory,
         PropertyWalker propertyWalker,
         Hasher hasher,
         Object parameterObject
     ) {
         ImmutableSortedMap.Builder<String, ValueSnapshot> inputParameterFingerprintsBuilder = ImmutableSortedMap.naturalOrder();
+        ImmutableSortedMap.Builder<String, CurrentFileCollectionFingerprint> inputFileParameterFingerprintsBuilder = ImmutableSortedMap.naturalOrder();
         List<String> validationMessages = new ArrayList<>();
         DefaultParameterValidationContext validationContext = new DefaultParameterValidationContext(validationMessages);
         propertyWalker.visitProperties(parameterObject, validationContext, new PropertyVisitor.Adapter() {
@@ -204,7 +221,10 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
 
             @Override
             public void visitInputFileProperty(String propertyName, boolean optional, boolean skipWhenEmpty, Class<? extends FileNormalizer> fileNormalizer, PropertyValue value, InputFilePropertyType filePropertyType) {
-                throw new UnsupportedOperationException("File input properties are not yet supported");
+                FileCollectionFingerprinter fingerprinter = fingerprinterRegistry.getFingerprinter(fileNormalizer);
+                FileCollection inputFileValue = FileParameterUtils.resolveInputFileValue(fileCollectionFactory, filePropertyType, value);
+                CurrentFileCollectionFingerprint fingerprint = fingerprinter.fingerprint(inputFileValue);
+                inputFileParameterFingerprintsBuilder.put(propertyName, fingerprint);
             }
         });
 
@@ -218,6 +238,10 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
         for (Map.Entry<String, ValueSnapshot> entry : inputParameterFingerprintsBuilder.build().entrySet()) {
             hasher.putString(entry.getKey());
             entry.getValue().appendToHasher(hasher);
+        }
+        for (Map.Entry<String, CurrentFileCollectionFingerprint> entry : inputFileParameterFingerprintsBuilder.build().entrySet()) {
+            hasher.putString(entry.getKey());
+            hasher.putHash(entry.getValue().getHash());
         }
     }
 

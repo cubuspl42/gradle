@@ -29,6 +29,7 @@ import org.gradle.api.internal.tasks.properties.TypeMetadata;
 import org.gradle.api.internal.tasks.properties.TypeMetadataStore;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.execution.ProjectExecutionServiceRegistry;
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher;
 import org.gradle.internal.exceptions.DefaultMultiCauseException;
 import org.gradle.internal.fingerprint.FingerprintingStrategy;
@@ -54,6 +55,7 @@ public class DefaultTransformationRegistrationFactory implements TransformationR
     private final ValueSnapshotter valueSnapshotter;
     private final PropertyWalker parametersPropertyWalker;
     private final DomainObjectProjectStateHandler domainObjectProjectStateHandler;
+    private final ProjectExecutionServiceRegistry projectExecutionServiceRegistry;
     private final TypeMetadataStore actionMetadataStore;
     private final InstantiationScheme actionInstantiationScheme;
     private final InstantiationScheme legacyActionInstantiationScheme;
@@ -65,8 +67,8 @@ public class DefaultTransformationRegistrationFactory implements TransformationR
         ValueSnapshotter valueSnapshotter,
         DomainObjectProjectStateHandler domainObjectProjectStateHandler,
         ArtifactTransformParameterScheme parameterScheme,
-        ArtifactTransformActionScheme actionScheme
-    ) {
+        ArtifactTransformActionScheme actionScheme,
+        ProjectExecutionServiceRegistry projectExecutionServiceRegistry) {
         this.isolatableFactory = isolatableFactory;
         this.classLoaderHierarchyHasher = classLoaderHierarchyHasher;
         this.transformerInvoker = transformerInvoker;
@@ -76,6 +78,7 @@ public class DefaultTransformationRegistrationFactory implements TransformationR
         this.legacyActionInstantiationScheme = actionScheme.getLegacyInstantiationScheme();
         this.parametersPropertyWalker = parameterScheme.getInspectionScheme().getPropertyWalker();
         this.domainObjectProjectStateHandler = domainObjectProjectStateHandler;
+        this.projectExecutionServiceRegistry = projectExecutionServiceRegistry;
     }
 
     @Override
@@ -127,7 +130,8 @@ public class DefaultTransformationRegistrationFactory implements TransformationR
             valueSnapshotter,
             parametersPropertyWalker,
             domainObjectProjectStateHandler,
-            actionInstantiationScheme);
+            actionInstantiationScheme,
+            projectExecutionServiceRegistry);
 
         return new DefaultArtifactTransformRegistration(from, to, new TransformationStep(transformer, transformerInvoker));
     }

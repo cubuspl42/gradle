@@ -31,7 +31,7 @@ class ArtifactTransformWithFileInputsIntegrationTest extends AbstractDependencyR
         buildFile << """
             @TransformAction(MakeGreenAction)
             interface MakeGreen {
-                @Input
+                @InputFiles
                 ConfigurableFileCollection getSomeFiles()
             }
             

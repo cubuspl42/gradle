@@ -16,33 +16,11 @@
 
 package org.gradle.execution;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import org.gradle.api.internal.project.ProjectInternal;
-
-import javax.annotation.Nonnull;
 
 /**
  * Registry of services provided for already configured projects.
  */
-public class ProjectExecutionServiceRegistry implements AutoCloseable {
-    private final LoadingCache<ProjectInternal, ProjectExecutionServices> projectRegistries = CacheBuilder.newBuilder()
-        .build(new CacheLoader<ProjectInternal, ProjectExecutionServices>() {
-            @Override
-            public ProjectExecutionServices load(@Nonnull ProjectInternal project) {
-                return new ProjectExecutionServices(project);
-            }
-        });
-
-    public <T> T getProjectService(ProjectInternal project, Class<T> serviceType) {
-        return projectRegistries.getUnchecked(project).get(serviceType);
-    }
-
-    @Override
-    public void close() {
-        for (ProjectExecutionServices registry : projectRegistries.asMap().values()) {
-            registry.close();
-        }
-    }
+public interface ProjectExecutionServiceRegistry {
+    <T> T getProjectService(ProjectInternal project, Class<T> serviceType);
 }

@@ -175,10 +175,9 @@ public class ProjectExecutionServices extends DefaultServiceRegistry {
         return new DefaultTaskFingerprinter(fingerprinterRegistry);
     }
 
-    FileCollectionFingerprinterRegistry createFileCollectionFingerprinterRegistry(
+    public static FileCollectionFingerprinterRegistry doCreateFileCollectionFingerprinterRegistry(
         ServiceRegistry serviceRegistry,
-        List<FileFingerprintingPropertyAnnotationHandler> handlers
-    ) {
+        List<FileFingerprintingPropertyAnnotationHandler> handlers) {
         ImmutableList.Builder<FileCollectionFingerprinter> fingerprinterImplementations = ImmutableList.builder();
         for (Class<? extends FileCollectionFingerprinter> builtInFingerprinterType : BUILT_IN_FINGERPRINTER_TYPES) {
             fingerprinterImplementations.add(serviceRegistry.get(builtInFingerprinterType));
@@ -187,6 +186,13 @@ public class ProjectExecutionServices extends DefaultServiceRegistry {
             fingerprinterImplementations.add(serviceRegistry.get(handler.getFingerprinterImplementationType()));
         }
         return new DefaultFileCollectionFingerprinterRegistry(fingerprinterImplementations.build());
+    }
+
+    FileCollectionFingerprinterRegistry createFileCollectionFingerprinterRegistry(
+        ServiceRegistry serviceRegistry,
+        List<FileFingerprintingPropertyAnnotationHandler> handlers
+    ) {
+        return doCreateFileCollectionFingerprinterRegistry(serviceRegistry, handlers);
     }
 
     TaskExecutionModeResolver createExecutionModeResolver(

@@ -82,6 +82,7 @@ public class DefaultTaskExecutionGraph implements TaskExecutionGraphInternal {
     private final DefaultExecutionPlan executionPlan;
     private final BuildOperationExecutor buildOperationExecutor;
     private final ListenerBuildOperationDecorator listenerBuildOperationDecorator;
+    private final ProjectExecutionServiceRegistry projectExecutionServiceRegistry;
     private GraphState graphState = GraphState.EMPTY;
     private List<Task> allTasks;
     private boolean hasFiredWhenReady;
@@ -99,7 +100,8 @@ public class DefaultTaskExecutionGraph implements TaskExecutionGraphInternal {
         TaskNodeFactory taskNodeFactory,
         TaskDependencyResolver dependencyResolver,
         ListenerBroadcast<TaskExecutionGraphListener> graphListeners,
-        ListenerBroadcast<TaskExecutionListener> taskListeners
+        ListenerBroadcast<TaskExecutionListener> taskListeners,
+        ProjectExecutionServiceRegistry projectExecutionServiceRegistry
     ) {
         this.planExecutor = planExecutor;
         this.nodeExecutors = nodeExecutors;
@@ -109,6 +111,7 @@ public class DefaultTaskExecutionGraph implements TaskExecutionGraphInternal {
         this.gradleInternal = gradleInternal;
         this.graphListeners = graphListeners;
         this.taskListeners = taskListeners;
+        this.projectExecutionServiceRegistry = projectExecutionServiceRegistry;
         this.executionPlan = new DefaultExecutionPlan(workerLeaseService, gradleInternal, taskNodeFactory, dependencyResolver);
     }
 
@@ -149,12 +152,7 @@ public class DefaultTaskExecutionGraph implements TaskExecutionGraphInternal {
 
     @Override
     public void execute(Collection<? super Throwable> failures) {
-        ProjectExecutionServiceRegistry projectExecutionServices = new ProjectExecutionServiceRegistry();
-        try {
-            executeWithServices(projectExecutionServices, failures);
-        } finally {
-            projectExecutionServices.close();
-        }
+        executeWithServices(projectExecutionServiceRegistry, failures);
     }
 
     private void executeWithServices(ProjectExecutionServiceRegistry projectExecutionServices, Collection<? super Throwable> failures) {
