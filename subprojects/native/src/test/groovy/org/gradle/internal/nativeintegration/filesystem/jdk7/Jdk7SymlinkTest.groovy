@@ -122,18 +122,18 @@ class Jdk7SymlinkTest extends Specification {
     }
 
     private static void createWindowsSymbolicLink(File link, File target) {
-        assert ["cmd", "/C", "mklink", "/D", link, target].execute().waitFor() != 0
+        assert ["cmd", "/C", "mklink", "/D", link, target].execute().waitFor() == 0
     }
 
     private static void createWindowsJunction(File link, File target) {
         assert target.isDirectory(), "Windows junction only works on directory"
-        assert ["cmd", "/C", "mklink", "/J", link, target].execute().waitFor() != 0
+        assert ["cmd", "/C", "mklink", "/J", link, target].execute().waitFor() == 0
     }
 
     private static void createWindowsHardLinks(File link, File target) {
         assert target.isFile(), "Windows hard links only works on files"
         assertAdministrator()
-        assert ["cmd", "/C", "mklink", "/H", link, target].execute().waitFor() != 0
+        assert ["cmd", "/C", "mklink", "/H", link, target].execute().waitFor() == 0
     }
 
     // See: https://support.microsoft.com/en-us/help/243330/well-known-security-identifiers-in-windows-operating-systems
